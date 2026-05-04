@@ -626,8 +626,21 @@
 
         function finalizarRondaExitosa() {
             const capitan = listaJugadores[indiceCapitan];
-            const respuestaReal = preguntaActual.a; // El valor correcto de la base de datos
             const cifraDelCapitan = parseInt(cifraPropuesta) || 0; // Lo que se apostó en la nave
+            let respuestaReal = preguntaActual.a; // El valor correcto de la base de datos
+
+            // --- NUEVA LÓGICA: Pregunta sin respuesta definida ---
+            if (respuestaReal === null || respuestaReal === undefined) {
+                const inputNarrador = prompt(`PREGUNTA: ${preguntaActual.q}\n\nEl Capitán se ha plantado en: ${cifraDelCapitan}\n¿Cuál es la respuesta correcta real?`);
+
+                // Validar que se introduzca un número
+                respuestaReal = parseInt(inputNarrador);
+
+                if (isNaN(respuestaReal)) {
+                    alert("Respuesta no válida. Se cancela el cierre de ronda.");
+                    return;
+                }
+            }
 
             // 1. EL JUEGO COMPRUEBA LA CONDICIÓN AUTOMÁTICAMENTE
             const capitanAcierta = cifraDelCapitan <= respuestaReal;

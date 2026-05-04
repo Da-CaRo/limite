@@ -68,5 +68,7 @@ export const PREGUNTAS = [
     { id: 67, q: "¿Cuántos metros mide una piscina olímpica de largo?", a: 50 },
     { id: 68, q: "¿Cuántas patas tiene una araña?", a: 8 },
     { id: 69, q: "¿Cuántos libros componen la saga original de Harry Potter?", a: 7 },
-    { id: 70, q: "¿Cuántas notas musicales existen (incluyendo sostenidos/bemoles)?", a: 12 }
+    { id: 70, q: "¿Cuántas notas musicales existen (incluyendo sostenidos/bemoles)?", a: 12 },
+    { id: 101, q: "¿Cuántos cafés se ha tomado hoy el grupo?", a: null }, // Pregunta grupal
+    { id: 102, q: "¿Qué temperatura hace ahora mismo en Madrid?", a: null }, // Actualidad
 ];
