@@ -137,17 +137,7 @@
             </div>
 
             <div id="nav-actions" class="flex items-center space-x-6">
-                <div id="action-buttons"></div>
-                <button id="btn-revelar-carta" onclick="procesarTurno()" class="hidden bg-gray-800 hover:bg-gray-700
-            text-white
-            px-8 py-2.5 
-            rounded-full font-black text-sm uppercase
-            transition-all duration-300
-            shadow-[0_0_20px_rgba(16,185,129,0.5)]
-            cursor-pointer
-            flex items-center justify-center">
-                    Siguiente Pregunta 🃏
-                </button>
+
                 <div id="game-progress"
                     class="hidden flex items-center bg-gray-800 px-4 py-1.5 rounded-full border border-gray-700 shadow-inner">
                     <span class="text-xs font-bold text-tarjeta mr-3 uppercase tracking-wider">Progreso</span>
@@ -285,7 +275,7 @@
                                 Cargando pregunta...
                             </h2>
                             <div id="display-cifra"
-                                class="text-7xl md:text-9xl font-black text-acento font-limite drop-shadow-[0_0_15px_rgba(247,255,0,0.3)]">
+                                class="text-4xl md:text-6xl font-black text-acento font-limite drop-shadow-[0_0_15px_rgba(247,255,0,0.3)]">
                                 0
                             </div>
                         </div>
@@ -413,13 +403,7 @@
         ];
 
         // --- BASE DE DATOS DE PREGUNTAS ---
-        const preguntasLimite = [
-            { q: "¿Cuántos dientes tiene un mosquito?", a: 47 },
-            { q: "¿Cuántos peldaños tiene la Torre Eiffel?", a: 1665 },
-            { q: "¿Cuántos segundos tiene una hora?", a: 3600 },
-            { q: "¿Cuántos huesos tiene un tiburón?", a: 0 },
-            { q: "¿Cuántos corazones tiene un pulpo?", a: 3 }
-        ];
+        import { PREGUNTAS } from './data/questions.js';
 
         let preguntaActual = null;
         let indiceCapitan = 0; // Para rotar quién manda
@@ -554,7 +538,7 @@
 
                     // Aplicamos estilos: si es el turno actual, se hace más grande y brilla
                     avatar.className = `relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center border-4 transition-all duration-500 
-                    ${esTurnoActual ? 'scale-125 z-20 shadow-[0_0_20px_rgba(247,255,0,0.6)]' : 'opacity-60 scale-90'}`;
+                    ${esTurnoActual ? 'scale-125 shadow-[0_0_20px_rgba(247,255,0,0.6)]' : 'opacity-60 scale-90'}`;
 
                     avatar.style.backgroundColor = p.color;
 
@@ -699,31 +683,46 @@
 
 
         // --- FUNCIONES EXPUESTAS AL WINDOW (Para el HTML) ---
-
         window.iniciarExpedicion = function () {
             if (rondaActual > MAX_RONDAS) {
-                mostrarPodioFinal();
+                window.mostrarPodioFinal();
                 return;
             }
 
-            preguntaActual = preguntasLimite[Math.floor(Math.random() * preguntasLimite.length)];
+            // 1. Consultar historial de IDs usados
+            let usados = JSON.parse(localStorage.getItem('limite_preguntas_usadas')) || [];
 
-            // Rotación inicial por ronda (Jugador 1 en R1, Jugador 2 en R2...)
+            // 2. Filtrar preguntas que NO han salido
+            let disponibles = PREGUNTAS.filter(p => !usados.includes(p.id));
+
+            // 3. VALIDACIÓN: Si se agotan, avisamos y reseteamos
+            if (disponibles.length === 0) {
+                alert("⚠️ ¡Se han agotado las preguntas nuevas! El mazo se ha reseteado para esta partida.");
+                usados = [];
+                disponibles = PREGUNTAS;
+            }
+
+            // 4. Seleccionar pregunta y actualizar historial
+            preguntaActual = disponibles[Math.floor(Math.random() * disponibles.length)];
+            usados.push(preguntaActual.id);
+            localStorage.setItem('limite_preguntas_usadas', JSON.stringify(usados));
+
+            // --- Resto de la lógica de inicio de ronda ---
             indiceCapitan = (rondaActual - 1) % listaJugadores.length;
-
-            // El turno empieza siempre con el capitán actual
             indiceJugadorTurno = indiceCapitan;
-            faseJuego = 'propuesta';
             cifraPropuesta = 0;
 
             document.getElementById('display-cifra').textContent = "0";
             document.getElementById('texto-pregunta').textContent = preguntaActual.q;
 
-            // Todos vuelven a la nave al empezar ronda
-            listaJugadores.forEach(p => p.estado = 'explorando');
+            listaJugadores.forEach(p => {
+                p.estado = 'explorando';
+                if (typeof p.puntos !== 'number') p.puntos = 0;
+            });
 
             actualizarInterfaz();
             actualizarFlujoNarrador();
+            guardarEstadoPartida(); // Guardamos el progreso para evitar pérdidas al recargar
         }
 
         window.enviarCifra = function () {
@@ -748,6 +747,7 @@
 
             // Pasamos al siguiente turno
             avanzarTurnoNarrador();
+            guardarEstadoPartida();
         };
 
         window.decisionJugador = function (decision) {
@@ -760,6 +760,7 @@
             }
 
             avanzarTurnoNarrador();
+            guardarEstadoPartida();
         };
 
 
@@ -786,11 +787,11 @@
         }
 
         window.mostrarPodioFinal = function () {
-            localStorage.removeItem('limite_savegame')
+            localStorage.removeItem('limite_savegame');
             const modal = document.getElementById('end-game-modal');
             const container = document.getElementById('podium-list');
 
-            // 1. Ordenar jugadores de mayor a menor puntuación
+            // 1. Ordenar jugadores de mayor a menor puntuación usando "puntos"
             const ranking = [...listaJugadores].sort((a, b) => b.puntos - a.puntos);
 
             container.innerHTML = '';
@@ -799,15 +800,14 @@
             let puestoVisual = 1;
 
             ranking.forEach((p, index) => {
-                // 2. Lógica de empate: 
-                // Si no es el primero, y tiene los mismos puntos que el anterior, mantiene el puestoVisual.
-                // Si tiene menos puntos, el puestoVisual se iguala a su posición real en el array (index + 1).
-                if (index > 0 && p.baul < ranking[index - 1].baul) {
+                // 2. Lógica de empate corregida: 
+                // Comparamos "puntos" con el jugador anterior para mantener el puesto si son iguales
+                if (index > 0 && p.puntos < ranking[index - 1].puntos) {
                     puestoVisual = index + 1;
                 }
 
                 const item = document.createElement('div');
-                const esGanador = puestoVisual === 1; // Ahora todos los que compartan el puesto 1 brillan
+                const esGanador = puestoVisual === 1;
 
                 item.className = `flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-500 ${esGanador
                     ? 'bg-yellow-500/10 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]'
@@ -826,12 +826,12 @@
                 <div class="text-left">
                     <p class="font-bold text-white uppercase text-lg leading-none">${p.nombre}</p>
                     <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">
-                        ${esGanador ? 'Gran Explorador' : 'Superviviente'}
+                        ${esGanador ? 'Capitán Legendario' : 'Superviviente'}
                     </p>
                 </div>
             </div>
             <div class="text-right">
-                <span class="text-2xl font-black text-white">💎 ${p.puntos}</span>
+                <span class="text-2xl font-black text-white"> ${p.puntos}</span>
             </div>
         `;
                 container.appendChild(item);
@@ -844,6 +844,10 @@
             const estado = {
                 listaJugadores,
                 rondaActual,
+                preguntaActual,    // Guardamos la pregunta activa
+                cifraPropuesta,    // Guardamos la cifra actual
+                indiceCapitan,     // Quién es el capitán actual
+                indiceJugadorTurno,// De quién es el turno
                 enPartida: !document.getElementById('game-layout').classList.contains('hidden')
             };
             localStorage.setItem('limite_savegame', JSON.stringify(estado));
@@ -857,19 +861,29 @@
             const estado = JSON.parse(guardado);
             if (!estado.enPartida) return;
 
-            // Restaurar variables
+            // Restaurar variables de estado
             listaJugadores = estado.listaJugadores;
             rondaActual = estado.rondaActual;
+            preguntaActual = estado.preguntaActual;
+            cifraPropuesta = estado.cifraPropuesta || 0;
+            indiceCapitan = estado.indiceCapitan || 0;
+            indiceJugadorTurno = estado.indiceJugadorTurno || 0;
 
             // Restaurar Interfaz
             document.getElementById('start-buttons').classList.add('hidden');
             document.getElementById('game-layout').classList.remove('hidden');
             document.getElementById('reset-game-btn').classList.remove('hidden');
-            document.getElementById('btn-revelar-carta').classList.remove('hidden');
-            document.querySelector('footer').classList.add('hidden')
+            document.querySelector('footer').classList.add('hidden');
+
+            // Restaurar textos visuales
+            if (preguntaActual) {
+                document.getElementById('texto-pregunta').textContent = preguntaActual.q;
+                document.getElementById('display-cifra').textContent = cifraPropuesta;
+            }
 
             actualizarInterfaz();
             actualizarFlujoNarrador();
+            actualizarTableroNave();
         }
 
         // Actualizar el botón de inicio para llamar a la nueva función expuesta
@@ -878,7 +892,6 @@
             document.getElementById('start-buttons').classList.add('hidden');
             document.getElementById('game-layout').classList.remove('hidden');
             document.getElementById('reset-game-btn').classList.remove('hidden');
-            document.getElementById('btn-revelar-carta').classList.remove('hidden');
             document.querySelector('footer').classList.add('hidden')
 
             window.iniciarExpedicion();
@@ -887,6 +900,7 @@
         // En el botón de borrar variables o reset:
         document.getElementById('clear-storage-btn').onclick = () => {
             localStorage.removeItem('limite_savegame');
+            localStorage.removeItem('limite_preguntas_usadas');
             location.reload();
         };
 
