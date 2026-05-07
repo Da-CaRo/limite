@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="icon" type="image/png" href="img/favicon.png">
+    <title>Limite</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/qrious@4.0.2/dist/qrious.js"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Mono&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Michroma&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/gh/Da-CaRo/site-configs@main/control.js" data-web="limite"></script>
+
+
+    <style>
+        /* 1. DEFINICIÓN DE VARIABLES DE COLOR */
+        :root {
+            --color-acento: #F7FF00;
+            /* Verde Esmeralda */
+            --color-fondo: #0B132B;
+            /* Un azul pizarra muy oscuro (slate-900) */
+            --color-tarjeta: #1e293b;
+            /* Un tono más claro para las tarjetas (slate-800) */
+            --color-texto: #FFFFFF;
+            /* Blanco azulado muy limpio */
+            --color-texto-tarjeta: #94a3b8;
+            /* Gris suave para descripciones */
+            --color-borde-tarjeta: #334155;
+            /* Bordes sutiles */
+        }
+
+        /* 2. APLICACIÓN DE VARIABLES A LOS ESTILOS GLOBALMENTE */
+        body {
+            font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            background-color: var(--color-fondo);
+            /* Usando variable */
+            color: var(--color-texto);
+            /* Usando variable */
+        }
+
+        /* Para usar una fuente monoespaciada en títulos específicos */
+        .font-code {
+            font-family: 'Space Mono', ui-monospace, SFMono-Regular, monospace;
+        }
+
+        .font-limite {
+            font-family: 'Michroma', cursive;
+        }
+
+        /* Sobrescribir las clases de Tailwind con las variables (para el color de acento) */
+        .text-limite {
+            color: var(--color-acento);
+        }
+
+        .text-acento {
+            color: var(--color-acento);
+        }
+
+        .hover-acento:hover {
+            color: var(--color-acento);
+        }
+
+        .bg-tarjeta {
+            background-color: var(--color-tarjeta);
+        }
+
+        .border-tarjeta {
+            border-color: var(--color-borde-tarjeta);
+        }
+
+        .border-tarjeta:hover {
+            border-color: var(--color-acento);
+        }
+
+        .text-tarjeta {
+            color: var(--color-texto-tarjeta);
+        }
+
+
+        #players-list-display {
+            transition: all 0.3s ease;
+            min-height: 50px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        @keyframes shine {
+            to {
+                background-position: 200% center;
+            }
+        }
+
+        /* Estilo para el scrollbar de la lista de jugadores */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 4px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 10px;
+        }
+
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: var(--color-acento);
+            border-radius: 10px;
+        }
+
+        /* Estilo específico para el scroll del podio */
+        #podium-list {
+            scrollbar-width: thin;
+            scrollbar-color: var(--color-acento) transparent;
+        }
+
+        #podium-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        #podium-list::-webkit-scrollbar-thumb {
+            background-color: var(--color-acento);
+            border-radius: 20px;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen antialiased">
+    <header class="bg-gray-900 shadow-md p-4 border-b border-gray-800 sticky top-0 z-10">
+        <div class="max-w-7xl mx-auto flex justify-between items-center py-0">
+            <div class="flex items-center space-x-2">
+                <img src="img/favicon.png" alt="Icono Loot And Run" class="h-8 w-8">
+                <h1 class="text-3xl font-extrabold text-limite font-limite">
+                    Limite
+                </h1>
+            </div>
+
+            <div id="nav-actions" class="flex items-center space-x-6">
+
+                <div id="game-progress"
+                    class="hidden flex items-center bg-gray-800 px-4 py-1.5 rounded-full border border-gray-700 shadow-inner">
+                    <span class="text-xs font-bold text-tarjeta mr-3 uppercase tracking-wider">Progreso</span>
+                    <div class="flex items-center space-x-4">
+                        <div class="flex flex-col items-center">
+                            <span id="round-count" class="text-acento font-limite text-lg leading-none">1/5</span>
+                            <span class="text-[8px] text-gray-500 uppercase">Ronda</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+
+            <div>
+                <button id="reset-game-btn"
+                    class="py-2 px-4 bg-gray-700 hover:bg-gray-600 text-red-400 font-bold rounded-lg transition duration-150 items-center justify-center text-base disabled:opacity-50 hidden"
+                    title="Acabar Partida">
+                    🛑 Salir
+                </button>
+            </div>
+        </div>
+    </header>
+    <div id="start-buttons">
+        <div class="py-8 md:py-12">
+            <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+
+                <h1 class="text-5xl md:text-6xl font-extrabold mb-4">
+                    ¿Hasta dónde te atreves a <span class="font-limite text-limite">subir</span>?
+                </h1>
+                <p class="text-xl text-tarjeta mb-12 max-w-2xl mx-auto">
+                    Un juego de riesgo, números y psicología. Quédate en la nave para ganar más puntos o bájate antes de
+                    que el Capitán se pase de la raya.
+                </p>
+            </div>
+
+            <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+
+                    <div
+                        class="bg-tarjeta p-6 rounded-lg shadow-xl border border-tarjeta transition duration-300 h-full flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-4">
+                                <span class="text-limite text-4xl block">⚙️</span>
+                                <h3 class="text-4xl font-bold">Opciones</h3>
+                            </div>
+                            <p class="text-tarjeta text-base">
+                            <div class="flex flex-col space-y-2 mb-4">
+                                <label
+                                    class="text-sm font-bold text-tarjeta uppercase tracking-widest text-center">Configurar
+                                    Jugadores</label>
+
+                                <div class="flex space-x-2">
+                                    <input type="text" id="player-name-input" placeholder="Introduce nombre (máx. 10)"
+                                        class="flex-1 p-3 bg-gray-700 border border-acento text-white rounded-lg focus:outline-none placeholder-gray-400"
+                                        maxlength="15"> <button id="add-player-btn"
+                                        class="shrink-0 bg-[--color-acento] text-white font-bold p-3 rounded-lg transition duration-150">
+                                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                                            xmlns="http://www.w3.org/2000/svg">
+                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                                d="M12 4v16m8-8H4"></path>
+                                        </svg>
+                                    </button>
+                                </div>
+
+                                <button id="start-btn" disabled
+                                    class="bg-gray-600 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded transition duration-150">
+                                    Empezar (mín. 3)
+                                </button>
+                            </div>
+                            </p>
+                        </div>
+                        <a href="https://da-caro.github.io/setup-and-play/limite.html" target="_blank"
+                            class="block">
+                            <span class="mt-5 inline-block text-sm font-medium text-limite hover:underline">Ver
+                                Instrucciones →</span></a>
+                    </div>
+
+                    <div
+                        class="bg-tarjeta p-6 rounded-lg shadow-xl border border-tarjeta transition duration-300 h-full flex flex-col justify-between lg:col-span-2">
+                        <div>
+                            <div class="flex items-center space-x-3 mb-4">
+                                <span class="text-limite text-4xl block">⚙️</span>
+                                <h3 class="text-4xl font-bold">Jugadores</h3>
+                            </div>
+                            <p class="text-tarjeta text-base">
+                            <div class="flex flex-col space-y-2 mb-4">
+
+                                <div id="players-list-display"
+                                    class="flex flex-wrap gap-2 min-h-[40px] p-2 bg-gray-900/50 rounded-lg border border-dashed border-gray-700">
+                                </div>
+
+                            </div>
+                            </p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+    <main class="w-full max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mt-4">
+        <div id="game-layout" class="flex flex-col lg:flex-row lg:space-x-8 hidden">
+
+            <div id="control-bar-wrapper"
+                class="flex flex-col sm:flex-row lg:flex-col justify-between items-center w-full lg:w-64 mb-6 lg:mb-0">
+                <div id="players-status"
+                    class="flex flex-row lg:flex-col gap-2 w-full overflow-x-auto lg:overflow-y-auto lg:max-h-[550px] pb-2 lg:pr-2 custom-scrollbar">
+                </div>
+            </div>
+
+            <div class="flex flex-col space-y-4 h-full w-full">
+                <!-- NUEVO CONTENEDOR DIVIDIDO -->
+                <div class="flex flex-col md:flex-row gap-4 min-h-[450px]">
+
+                    <!-- Mitad Izquierda: El Tablero / La Nave -->
+                    <div
+                        class="w-full md:w-1/2 bg-gray-900 p-6 rounded-xl border border-gray-700 shadow-inner flex flex-col">
+                        <h3 class="text-xs font-bold text-gray-500 uppercase mb-6 tracking-widest text-center">
+                            Tripulación en la Nave
+                        </h3>
+                        <div id="tablero-nave"
+                            class="flex-grow flex flex-wrap items-center justify-center gap-6 content-center">
+                            <!-- Aquí se dibujarán los círculos de los jugadores -->
+                        </div>
+                    </div>
+
+                    <!-- Mitad Derecha: Centro de Mando del Narrador -->
+                    <div
+                        class="w-full md:w-1/2 bg-gray-800 p-6 rounded-xl border-t-4 border-[--color-acento] shadow-2xl flex flex-col justify-between items-center text-center relative overflow-hidden">
+
+                        <!-- Pantalla de Cifra -->
+                        <div id="pantalla-pregunta" class="z-10 w-full mt-4">
+                            <h2 id="texto-pregunta" class="mb-4 min-h-[60px] flex items-center justify-center">
+                                <span id="contenido-pregunta"
+                                    class="text-xl md:text-2xl italic font-bold text-white">Cargando pregunta...</span>
+                                <span id="icono-pregunta" class="ml-1 opacity-80 text-3xl">❓</span>
+
+                            </h2>
+                            <div id="display-cifra"
+                                class="text-4xl md:text-6xl font-black text-acento font-limite drop-shadow-[0_0_15px_rgba(247,255,0,0.3)]">
+                                0
+                            </div>
+                        </div>
+
+                        <!-- PANEL UNIFICADO PARA EL NARRADOR -->
+                        <div id="panel-decision-unificado"
+                            class="w-full z-10 bg-gray-900/50 p-6 rounded-2xl border border-gray-700 mt-6">
+                            <p class="text-xs uppercase font-black text-acento mb-4 tracking-widest">
+                                🎙️ Turno de: <span id="nombre-jugador-turno" class="text-white text-lg">---</span>
+                            </p>
+
+                            <!-- Acción 1: Subir la Cifra -->
+                            <div class="flex flex-col space-y-2 mb-6">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Opción A: Subir
+                                    Cifra</label>
+                                <div class="grid grid-cols-3 gap-4">
+                                    <input type="number" id="input-cifra"
+                                        class="col-span-2 bg-gray-800 border border-gray-600 text-white text-2xl p-2 rounded-lg text-center focus:outline-none focus:border-acento"
+                                        placeholder="+1">
+                                    <button onclick="enviarCifra()"
+                                        class="bg-[--color-acento] text-black font-black px-4 rounded-lg transition transform active:scale-95 uppercase text-xs">
+                                        SUBIR 🆙
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Acción 2 y 3: Decisiones de Nave -->
+                            <div class="flex flex-col space-y-2">
+                                <label class="text-[10px] text-gray-500 uppercase font-bold">Opción B:
+                                    Posicionarse</label>
+                                <div class="grid grid-cols-2 gap-4">
+                                    <button id="btn-sigue" onclick="decisionJugador('keep')"
+                                        class="bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-4 rounded-xl transition transform active:scale-95 uppercase text-xs shadow-lg">
+                                        SE QUEDA ✅
+                                    </button>
+                                    <button id="btn-baja" onclick="decisionJugador('leave')"
+                                        class="bg-red-600 hover:bg-red-500 text-white font-bold py-4 rounded-xl transition transform active:scale-95 uppercase text-xs shadow-lg">
+                                        SE BAJA 🏃‍♂️
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <div id="end-game-modal"
+        class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/90 backdrop-blur-md p-4">
+        <div
+            class="bg-gray-800 border-2 border-acento w-full max-w-2xl rounded-3xl p-8 text-center shadow-[0_0_50px_rgba(45,255,235,0.3)]">
+            <h2 class="family-bungee text-4xl text-acento mb-2 text-shadow-neon">¡FIN DE LA AVENTURA!</h2>
+            <p class="text-gray-400 mb-8 uppercase tracking-widest text-sm font-bold">Resultados de la expedición</p>
+
+            <div id="podium-list" class="space-y-4 mb-10 max-h-[50vh] overflow-y-auto pr-4 custom-scrollbar">
+            </div>
+
+            <button onclick="location.reload()" class="bg-gray-800 hover:bg-gray-700
+            text-white
+            px-8 py-2.5 
+            rounded-full font-black text-sm uppercase
+            transition-all duration-300
+            shadow-[0_0_20px_rgba(16,185,129,0.5)]
+            cursor-pointer
+            ">
+                Nueva Partida 🔄
+            </button>
+        </div>
+    </div>
+
+    <footer class="bg-gray-900 border-t border-gray-800 mt-16 py-4">
+        <div class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row justify-between items-center text-center md:text-left">
+
+                <p class="text-xs text-tarjeta mb-4 md:mb-0">
+                    &copy; <span id="currentYearFooter"></span> <span class="font-code">
+                        Da_CaRo
+                    </span>
+                </p>
+
+                <div class="flex space-x-6 items-center">
+                    <a href="https://da-caro.github.io/labs" target="_blank"
+                        class="text-tarjeta hover-acento transition duration-300 text-sm">
+                        Labs
+                    </a>
+                    <a href="https://github.com/da-caro" target="_blank"
+                        class="text-tarjeta hover-acento transition duration-300 text-sm">
+                        GitHub
+                    </a>
+                    <button id="clear-storage-btn" class="text-tarjeta hover-acento transition duration-300 text-sm">
+                        Borrar Variables
+                    </button>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="guide-modal" class="hidden fixed inset-0 bg-black/85 flex items-center justify-center z-50 p-4">
+        <div class="bg-gray-800 p-8 rounded-2xl max-w-sm w-full text-center border-2 border-acento shadow-2xl">
+        </div>
+    </div>
+
+    <script type="module">
+        document.getElementById('currentYearFooter').textContent = new Date().getFullYear();
+
+        // --- 1. VARIABLES DE ESTADO (SIEMPRE PRIMERO) ---
+        let listaJugadores = [];
+        let jugadoresTemporales = [];
+        let rondaActual = 1;
+        const MAX_RONDAS = 8;
+
+        const coloresJugadores = [
+            { nombre: 'Rojo', hex: '#ef4444' },
+            { nombre: 'Azul', hex: '#3b82f6' },
+            { nombre: 'Verde', hex: '#22c55e' },
+            { nombre: 'Amarillo', hex: '#eab308' },
+            { nombre: 'Rosa', hex: '#ec4899' },
+            { nombre: 'Naranja', hex: '#f97316' },
+            { nombre: 'Cian', hex: '#06b6d4' },
+            { nombre: 'Morado', hex: '#a855f7' },
+            { nombre: 'Lima', hex: '#84cc16' },
+            { nombre: 'Blanco', hex: '#f8fafc' }
+        ];
+
+        // --- BASE DE DATOS DE PREGUNTAS ---
+        import { PREGUNTAS } from './data/questions.js';
+
+        let preguntaActual = null;
+        let indiceCapitan = 0; // Para rotar quién manda
+        let cifraPropuesta = 0;
+        let indiceJugadorTurno = 0;
+        let faseJuego = 'propuesta'; // 'propuesta' (Capitán) o 'decision' (Tripulación)
+
+        // --- GESTIÓN DE JUGADORES (SETUP) ---
+
+        document.getElementById('add-player-btn').onclick = () => {
+            const input = document.getElementById('player-name-input');
+            const nombre = input.value.trim();
+
+            if (nombre && jugadoresTemporales.length < 10) {
+                const colorAsignado = coloresJugadores[jugadoresTemporales.length % coloresJugadores.length].hex;
+                jugadoresTemporales.push({
+                    id: Date.now(),
+                    nombre: nombre,
+                    color: colorAsignado,
+                    puntos: 0, // Único contador de puntuación
+                    estado: 'explorando' // 'explorando', 'a_salvo', 'fuera'
+                });
+                input.value = '';
+                actualizarVistaPreviaJugadores();
+                guardarNombresTemporales();
+            }
+        };
+
+        function actualizarVistaPreviaJugadores() {
+            const container = document.getElementById('players-list-display');
+            const startBtn = document.getElementById('start-btn');
+            container.innerHTML = '';
+
+            jugadoresTemporales.forEach((jugador, index) => {
+                const badge = document.createElement('div');
+                badge.draggable = true;
+                badge.className = 'flex items-center space-x-1 px-3 py-1.5 rounded-full text-xs font-black transition-all duration-200 shadow-sm select-none';
+                badge.style.backgroundColor = jugador.color;
+                badge.style.color = '#0f172a';
+
+                badge.innerHTML = `
+            <span class="cursor-grab active:cursor-grabbing opacity-50 hover:opacity-100 px-1 text-lg drag-handle">⋮⋮</span>
+            <span class="flex-1 py-1 cursor-pointer hover:underline name-zone px-1" draggable="false">${jugador.nombre}</span>
+            <button class="opacity-40 hover:opacity-100 hover:text-white transition-opacity text-xl px-2 cursor-pointer delete-btn" 
+                    type="button" style="background:none; border:none; color:inherit; font-weight:bold;">×</button>
+        `;
+
+                // Cambiar color al hacer clic en el nombre
+                badge.querySelector('.name-zone').onclick = () => {
+                    let colorIndex = coloresJugadores.findIndex(c => c.hex === jugador.color);
+                    colorIndex = (colorIndex + 1) % coloresJugadores.length;
+                    jugador.color = coloresJugadores[colorIndex].hex;
+                    actualizarVistaPreviaJugadores();
+                    guardarNombresTemporales();
+                };
+
+                // Eliminar jugador
+                badge.querySelector('.delete-btn').onclick = () => {
+                    jugadoresTemporales.splice(index, 1);
+                    actualizarVistaPreviaJugadores();
+                    guardarNombresTemporales();
+                };
+
+                // Lógica de Drag & Drop (simplificada)
+                badge.ondragstart = (e) => { if (e.target.classList.contains('name-zone')) e.preventDefault(); e.dataTransfer.setData('text', index); };
+                badge.ondragover = (e) => e.preventDefault();
+                badge.ondrop = (e) => {
+                    const fromIndex = e.dataTransfer.getData('text');
+                    const item = jugadoresTemporales.splice(fromIndex, 1)[0];
+                    jugadoresTemporales.splice(index, 0, item);
+                    actualizarVistaPreviaJugadores();
+                    guardarNombresTemporales();
+                };
+
+                container.appendChild(badge);
+            });
+
+            startBtn.disabled = jugadoresTemporales.length < 3;
+            startBtn.textContent = jugadoresTemporales.length < 3 ? `Mínimo 3 jugadores` : `Empezar Partida`;
+        }
+
+        // --- LÓGICA DE CONTROL DE LA PARTIDA ---
+
+        function actualizarInterfaz() {
+            const progressContainer = document.getElementById('game-progress');
+            const roundText = document.getElementById('round-count');
+            progressContainer.classList.remove('hidden');
+            roundText.textContent = `${rondaActual}/${MAX_RONDAS}`;
+
+            const statusContainer = document.getElementById('players-status');
+            statusContainer.innerHTML = '';
+
+            listaJugadores.forEach(p => {
+                const card = document.createElement('div');
+                card.className = `p-2 rounded-lg border text-sm min-w-[140px] lg:min-w-full shrink-0 ${p.estado === 'explorando' ? 'bg-gray-800 border-gray-600' : 'bg-black/40 border-red-900/50 opacity-60'}`;
+
+                card.innerHTML = `
+            <div class="flex items-center space-x-2">
+                <div class="w-2 h-8 rounded-full shrink-0" style="background-color: ${p.color}"></div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex justify-between items-center">
+                        <span class="font-bold truncate" style="color: ${p.color}">${p.nombre}</span>
+                        <span class="text-[10px] ml-1">${p.estado === 'explorando' ? '🚀' : '🏠'}</span>
+                    </div>
+                    <div class="flex justify-between text-[11px]">
+                        <span class="font-bold text-acento">PUNTOS: ${p.puntos}</span>
+                    </div>
+                </div>
+            </div>`;
+                statusContainer.appendChild(card);
+            });
+        }
+
+        function actualizarTableroNave() {
+            const contenedor = document.getElementById('tablero-nave');
+
+            // Validamos que el contenedor exista para evitar errores
+            if (!contenedor) return;
+
+            contenedor.innerHTML = '';
+
+            // 1. Identificar al Capitán de la ronda actual
+            const capitan = listaJugadores[indiceCapitan];
+
+            // 2. Dibujar a toda la tripulación que sigue en la nave
+            listaJugadores.forEach((p, index) => {
+                if (p.estado === 'explorando') {
+                    const avatar = document.createElement('div');
+
+                    const esCapitan = (index === indiceCapitan);
+                    const esTurnoActual = (index === indiceJugadorTurno);
+
+                    // Aplicamos estilos: si es el turno actual, se hace más grande y brilla
+                    avatar.className = `relative w-16 h-16 md:w-20 md:h-20 rounded-full flex items-center justify-center border-4 transition-all duration-500 
+                    ${esTurnoActual ? 'scale-125 shadow-[0_0_20px_rgba(247,255,0,0.6)]' : 'opacity-60 scale-90'}`;
+
+                    avatar.style.backgroundColor = p.color;
+
+                    // El borde del avatar es amarillo si es el capitán, o blanco traslúcido si no
+                    avatar.style.borderColor = esCapitan ? 'var(--color-acento)' : 'rgba(255,255,255,0.2)';
+
+                    avatar.innerHTML = `
+                <span class="text-gray-900 font-black text-xl">${p.nombre.substring(0, 2).toUpperCase()}</span>
+                ${esCapitan ? '<span class="absolute -top-3 -left-1 text-3xl drop-shadow-md">👨‍🚀</span>' : ''}
+                <div class="absolute -bottom-2 bg-black/90 px-2 py-0.5 rounded text-[9px] text-white font-bold border border-gray-700 whitespace-nowrap">
+                    ${p.nombre} ${esCapitan ? '(CAPITÁN)' : ''}
+                </div>
+            `;
+                    contenedor.appendChild(avatar);
+                }
+            });
+        }
+        // --- PERSISTENCIA BÁSICA ---
+
+        function guardarNombresTemporales() {
+            localStorage.setItem('limite_nombres_recientes', JSON.stringify(jugadoresTemporales));
+        }
+
+        function cargarNombresRecientes() {
+            const guardados = localStorage.getItem('limite_nombres_recientes');
+            if (guardados) {
+                jugadoresTemporales = JSON.parse(guardados);
+                actualizarVistaPreviaJugadores();
+            }
+        }
+
+        function actualizarFlujoNarrador() {
+            const displayNombre = document.getElementById('nombre-jugador-turno');
+            const jugadorActual = listaJugadores[indiceJugadorTurno];
+            const inputCifra = document.getElementById('input-cifra');
+
+            if (!jugadorActual) return;
+
+            // Actualizar nombre y color en el panel
+            displayNombre.textContent = jugadorActual.nombre.toUpperCase();
+            displayNombre.style.color = jugadorActual.color;
+
+            // Limpiar el input para el siguiente
+            inputCifra.value = "";
+            inputCifra.placeholder = `Mayor a ${cifraPropuesta}`;
+
+            // Resaltar en el tablero izquierdo quién está hablando
+            actualizarTableroNave();
+        }
+
+        function crearBotonNarrador(texto, color, accion) {
+            const btn = document.createElement('button');
+            btn.className = `${color} text-white font-bold px-6 py-3 rounded-xl transform active:scale-95 transition-all uppercase text-sm shadow-lg`;
+            btn.textContent = texto;
+            btn.onclick = accion;
+            return btn;
+        }
+
+        function avanzarTurnoNarrador() {
+            // Avanzamos al siguiente jugador
+            indiceJugadorTurno++;
+
+            // Si el índice supera el límite de jugadores, vuelve al inicio (jugador 0)
+            if (indiceJugadorTurno >= listaJugadores.length) {
+                indiceJugadorTurno = 0;
+            }
+
+            // --- LÓGICA DE CIERRE DE RONDA ---
+            // Si el turno vuelve a ser del Capitán, significa que nadie subió la cifra.
+            if (indiceJugadorTurno === indiceCapitan) {
+                finalizarRondaExitosa();
+                return; // Detenemos el flujo de turnos
+            }
+
+            // Saltar jugadores que ya se bajaron de la nave o no están explorando
+            if (listaJugadores[indiceJugadorTurno].estado !== 'explorando') {
+                avanzarTurnoNarrador();
+                return;
+            }
+
+            actualizarFlujoNarrador();
+            actualizarTableroNave();
+            actualizarInterfaz();
+        }
+
+        function finalizarRondaExitosa() {
+            const capitan = listaJugadores[indiceCapitan];
+            const cifraDelCapitan = parseInt(cifraPropuesta) || 0; // Lo que se apostó en la nave
+            let respuestaReal = preguntaActual.a; // El valor correcto de la base de datos
+
+            // --- NUEVA LÓGICA: Pregunta sin respuesta definida ---
+            if (respuestaReal === null || respuestaReal === undefined) {
+                const inputNarrador = prompt(`PREGUNTA: ${preguntaActual.q}\n\nEl Capitán se ha plantado en: ${cifraDelCapitan}\n¿Cuál es la respuesta correcta real?`);
+
+                // Validar que se introduzca un número
+                respuestaReal = parseInt(inputNarrador);
+
+                if (isNaN(respuestaReal)) {
+                    alert("Respuesta no válida. Se cancela el cierre de ronda.");
+                    return;
+                }
+            }
+
+            // 1. EL JUEGO COMPRUEBA LA CONDICIÓN AUTOMÁTICAMENTE
+            const capitanAcierta = cifraDelCapitan <= respuestaReal;
+
+            if (capitanAcierta) {
+                // --- ESCENARIO: ÉXITO ---
+                alert(`¡RESULTADO REAL: ${respuestaReal}! El Capitán no se ha pasado.\n\n` +
+                    `• Capitán (${capitan.nombre}): +4 puntos\n` +
+                    `• Tripulación a bordo: +2 puntos`);
+
+                listaJugadores.forEach((p, index) => {
+                    if (typeof p.puntos !== 'number') p.puntos = 0; // Protección contra NaN
+
+                    if (index === indiceCapitan) {
+                        p.puntos += 4; // Puntos para el capitán
+                    } else if (p.estado === 'explorando') {
+                        p.puntos += 2; // Puntos para los que se quedaron
+                    }
+                });
+            } else {
+                // --- ESCENARIO: DERROTA (BOOM) ---
+                alert(`¡BOOM! El resultado real era ${respuestaReal}. El Capitán se ha pasado.\n\n` +
+                    `• Capitán (${capitan.nombre}): -1 punto\n` +
+                    `• Supervivientes fuera: +2 puntos`);
+
+                listaJugadores.forEach((p, index) => {
+                    if (typeof p.puntos !== 'number') p.puntos = 0; // Protección contra NaN
+
+                    if (index === indiceCapitan) {
+                        p.puntos = Math.max(0, p.puntos - 1); // Resta 1 punto (mínimo 0)
+                    } else if (p.estado === 'a_salvo') {
+                        p.puntos += 2; // Puntos para los que se bajaron
+                    }
+                });
+            }
+
+            // Actualizar visualmente y pasar a la siguiente ronda
+            actualizarInterfaz();
+            finalizarExpedicion("Ronda finalizada.");
+        }
+
+        document.getElementById('reset-game-btn').onclick = () => {
+            if (confirm("¿Deseas abandonar la expedición?")) {
+                localStorage.removeItem('limite_savegame');
+                location.reload();
+            }
+        };
+
+        function finalizarFaseDecision() {
+            alert("¡Todos han decidido! El Narrador revela la respuesta...");
+            // Aquí iría la lógica de comprobar si el Capitán explotó o no
+        }
+
+
+        // --- FUNCIONES EXPUESTAS AL WINDOW (Para el HTML) ---
+        window.iniciarExpedicion = function () {
+            if (rondaActual > MAX_RONDAS) {
+                window.mostrarPodioFinal();
+                return;
+            }
+
+            // 1. Consultar historial de IDs usados
+            let usados = JSON.parse(localStorage.getItem('limite_preguntas_usadas')) || [];
+
+            // 2. Filtrar preguntas que NO han salido
+            let disponibles = PREGUNTAS.filter(p => !usados.includes(p.id));
+
+            // 3. VALIDACIÓN: Si se agotan, avisamos y reseteamos
+            if (disponibles.length === 0) {
+                alert("⚠️ ¡Se han agotado las preguntas nuevas! El mazo se ha reseteado para esta partida.");
+                usados = [];
+                disponibles = PREGUNTAS;
+            }
+
+            // 4. Seleccionar pregunta y actualizar historial
+            preguntaActual = disponibles[Math.floor(Math.random() * disponibles.length)];
+            usados.push(preguntaActual.id);
+            localStorage.setItem('limite_preguntas_usadas', JSON.stringify(usados));
+
+            // --- Resto de la lógica de inicio de ronda ---
+            indiceCapitan = (rondaActual - 1) % listaJugadores.length;
+            indiceJugadorTurno = indiceCapitan;
+            cifraPropuesta = 0;
+
+            document.getElementById('display-cifra').textContent = "0";
+
+            // Sustituye las líneas de carga por estas:
+            const iconoElemento = document.getElementById('icono-pregunta');
+            const contenidoElemento = document.getElementById('contenido-pregunta');
+
+            const icono = preguntaActual.i || "❓";
+            iconoElemento.textContent = icono;
+            contenidoElemento.textContent = preguntaActual.q;
+
+            listaJugadores.forEach(p => {
+                p.estado = 'explorando';
+                if (typeof p.puntos !== 'number') p.puntos = 0;
+            });
+
+            actualizarInterfaz();
+            actualizarFlujoNarrador();
+            guardarEstadoPartida(); // Guardamos el progreso para evitar pérdidas al recargar
+        }
+
+        window.enviarCifra = function () {
+            const input = document.getElementById('input-cifra');
+            const valor = parseInt(input.value);
+
+            // Validación: debe ser mayor a la actual
+            if (isNaN(valor) || valor <= cifraPropuesta) {
+                alert(`¡Cuidado Narrador! La cifra debe ser mayor a ${cifraPropuesta}`);
+                return;
+            }
+
+            cifraPropuesta = valor;
+            document.getElementById('display-cifra').textContent = cifraPropuesta;
+
+            // --- NUEVA LÓGICA DE CAPITÁN DINÁMICO ---
+            // El jugador que acaba de subir la cifra se convierte en el nuevo Capitán
+            indiceCapitan = indiceJugadorTurno;
+
+            // Al subir la cifra, el jugador se mantiene en la nave
+            listaJugadores[indiceJugadorTurno].estado = 'explorando';
+
+            // Pasamos al siguiente turno
+            avanzarTurnoNarrador();
+            guardarEstadoPartida();
+        };
+
+        window.decisionJugador = function (decision) {
+            const jugadorActual = listaJugadores[indiceJugadorTurno];
+
+            if (decision === 'keep') {
+                jugadorActual.estado = 'explorando';
+            } else {
+                jugadorActual.estado = 'a_salvo';
+            }
+
+            avanzarTurnoNarrador();
+            guardarEstadoPartida();
+        };
+
+
+        // --- LÓGICA INTERNA ---
+
+
+
+        let decisionesTurno = {};
+
+        function finalizarExpedicion(motivo) {
+            // Si ya terminamos la ronda 5, vamos al podio
+            if (rondaActual >= MAX_RONDAS) {
+                setTimeout(() => {
+                    window.mostrarPodioFinal();
+                }, 1000);
+                return;
+            }
+
+            rondaActual++;
+            guardarEstadoPartida();
+            window.iniciarExpedicion();
+        }
+
+        window.mostrarPodioFinal = function () {
+            localStorage.removeItem('limite_savegame');
+            const modal = document.getElementById('end-game-modal');
+            const container = document.getElementById('podium-list');
+
+            // 1. Ordenar jugadores de mayor a menor puntuación usando "puntos"
+            const ranking = [...listaJugadores].sort((a, b) => b.puntos - a.puntos);
+
+            container.innerHTML = '';
+            modal.classList.remove('hidden');
+
+            let puestoVisual = 1;
+
+            ranking.forEach((p, index) => {
+                // 2. Lógica de empate corregida: 
+                // Comparamos "puntos" con el jugador anterior para mantener el puesto si son iguales
+                if (index > 0 && p.puntos < ranking[index - 1].puntos) {
+                    puestoVisual = index + 1;
+                }
+
+                const item = document.createElement('div');
+                const esGanador = puestoVisual === 1;
+
+                item.className = `flex items-center justify-between p-4 rounded-xl border-2 transition-all duration-500 ${esGanador
+                    ? 'bg-yellow-500/10 border-yellow-400 shadow-[0_0_15px_rgba(250,204,21,0.2)]'
+                    : 'bg-gray-700/50 border-gray-600'
+                    }`;
+
+                item.innerHTML = `
+            <div class="flex items-center space-x-4">
+                <div class="flex flex-col items-center justify-center min-w-[40px]">
+                    <span class="text-2xl font-black ${esGanador ? 'text-yellow-400' : 'text-gray-500'}">
+                        #${puestoVisual}
+                    </span>
+                    ${esGanador ? '<span class="text-[10px] text-yellow-500">🏆</span>' : ''}
+                </div>
+                <div class="w-3 h-10 rounded-full" style="background-color: ${p.color}"></div>
+                <div class="text-left">
+                    <p class="font-bold text-white uppercase text-lg leading-none">${p.nombre}</p>
+                    <p class="text-[10px] text-gray-400 mt-1 uppercase tracking-tighter">
+                        ${esGanador ? 'Capitán Legendario' : 'Superviviente'}
+                    </p>
+                </div>
+            </div>
+            <div class="text-right">
+                <span class="text-2xl font-black text-white"> ${p.puntos}</span>
+            </div>
+        `;
+                container.appendChild(item);
+            });
+        }
+
+        // --- NUEVAS FUNCIONES DE PERSISTENCIA ---
+
+        function guardarEstadoPartida() {
+            const estado = {
+                listaJugadores,
+                rondaActual,
+                preguntaActual,    // Guardamos la pregunta activa
+                cifraPropuesta,    // Guardamos la cifra actual
+                indiceCapitan,     // Quién es el capitán actual
+                indiceJugadorTurno,// De quién es el turno
+                enPartida: !document.getElementById('game-layout').classList.contains('hidden')
+            };
+            localStorage.setItem('limite_savegame', JSON.stringify(estado));
+        }
+
+        function cargarPartidaGuardada() {
+            const guardado = localStorage.getItem('limite_savegame');
+            console.log(guardado)
+            if (!guardado) return;
+
+            const estado = JSON.parse(guardado);
+            if (!estado.enPartida) return;
+
+            // Restaurar variables de estado
+            listaJugadores = estado.listaJugadores;
+            rondaActual = estado.rondaActual;
+            preguntaActual = estado.preguntaActual;
+            cifraPropuesta = estado.cifraPropuesta || 0;
+            indiceCapitan = estado.indiceCapitan || 0;
+            indiceJugadorTurno = estado.indiceJugadorTurno || 0;
+
+            // Restaurar Interfaz
+            document.getElementById('start-buttons').classList.add('hidden');
+            document.getElementById('game-layout').classList.remove('hidden');
+            document.getElementById('reset-game-btn').classList.remove('hidden');
+            document.querySelector('footer').classList.add('hidden');
+
+            // Restaurar textos visuales
+            if (preguntaActual) {
+                const iconoElemento = document.getElementById('icono-pregunta');
+                const contenidoElemento = document.getElementById('contenido-pregunta');
+
+                iconoElemento.textContent = preguntaActual.i || "❓";
+                contenidoElemento.textContent = preguntaActual.q;
+                document.getElementById('display-cifra').textContent = cifraPropuesta;
+            }
+
+            actualizarInterfaz();
+            actualizarFlujoNarrador();
+            actualizarTableroNave();
+        }
+
+        // Actualizar el botón de inicio para llamar a la nueva función expuesta
+        document.getElementById('start-btn').addEventListener('click', () => {
+            listaJugadores = [...jugadoresTemporales];
+            document.getElementById('start-buttons').classList.add('hidden');
+            document.getElementById('game-layout').classList.remove('hidden');
+            document.getElementById('reset-game-btn').classList.remove('hidden');
+            document.querySelector('footer').classList.add('hidden')
+
+            window.iniciarExpedicion();
+        });
+
+        // En el botón de borrar variables o reset:
+        document.getElementById('clear-storage-btn').onclick = () => {
+            localStorage.removeItem('limite_savegame');
+            localStorage.removeItem('limite_preguntas_usadas');
+            location.reload();
+        };
+
+        // --- EJECUCIÓN INICIAL (AL FINAL DEL SCRIPT) ---
+        cargarNombresRecientes();
+        cargarPartidaGuardada(); // <-- Muévela aquí, al puro final.
+
+    </script>
+
+</body>
+
+</html>
