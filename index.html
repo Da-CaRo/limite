@@ -296,10 +296,16 @@
                                     <input type="number" id="input-cifra"
                                         class="col-span-2 bg-gray-800 border border-gray-600 text-white text-2xl p-2 rounded-lg text-center focus:outline-none focus:border-acento"
                                         placeholder="+1">
-                                    <button onclick="enviarCifra()"
-                                        class="bg-[--color-acento] text-black font-black px-4 rounded-lg transition transform active:scale-95 uppercase text-xs">
-                                        SUBIR 🆙
-                                    </button>
+                                    <div class="grid grid-cols-2 gap-2">
+                                        <button id="btn-subir" onclick="enviarCifra()"
+                                            class="bg-[--color-acento] text-black font-black px-4 rounded-lg transition transform active:scale-95 uppercase text-xs disabled:opacity-30 disabled:grayscale">
+                                            SUBIR 🆙
+                                        </button>
+                                        <button id="btn-ordago" onclick="lanzarOrdago()"
+                                            class="bg-orange-600 hover:bg-orange-500 text-white font-black px-2 rounded-lg transition transform active:scale-95 uppercase text-[10px] shadow-lg disabled:opacity-30 disabled:grayscale">
+                                            ÓRDAGO 🔥
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
 
@@ -388,6 +394,7 @@
         let listaJugadores = [];
         let jugadoresTemporales = [];
         let rondaActual = 1;
+        let ordagoActivo = false;
         const MAX_RONDAS = 8;
 
         const coloresJugadores = [
@@ -646,50 +653,40 @@
             // 1. EL JUEGO COMPRUEBA LA CONDICIÓN AUTOMÁTICAMENTE
             const capitanAcierta = cifraDelCapitan <= respuestaReal;
 
-            if (capitanAcierta) {
-                // --- ESCENARIO: ÉXITO ---
-                const tripulantesEnNave = listaJugadores.filter((p, index) =>
-                    index !== indiceCapitan && p.estado === 'explorando'
-                ).length;
+            const ptsCapitanGanar = ordagoActivo ? 8 : 4;
+            const ptsTripulacionGanar = ordagoActivo ? 3 : 2;
+            const ptsCapitanPerder = ordagoActivo ? 2 : 1; // Se restarán
+            const ptsBajadosPerder = ordagoActivo ? 1 : 2;
 
-                let mensajeExito = `¡RESULTADO REAL: ${respuestaReal}! El Capitán no se ha pasado.\n\n` +
-                    `• Capitán (${capitan.nombre}): +4 puntos\n` +
-                    `• Tripulación a bordo: +2 puntos`;
+            if (capitanAcierta) {
+                let mensajeExito = `¡ÉXITO! Respuesta: ${respuestaReal}.\n`;
 
                 listaJugadores.forEach((p, index) => {
-                    if (typeof p.puntos !== 'number') p.puntos = 0;
-
                     if (index === indiceCapitan) {
-                        // Si no hay nadie más, bonus de Lobo Solitario
-                        const bonusSolo = (tripulantesEnNave === 0) ? 2 : 0;
-                        p.puntos += (4 + bonusSolo);
-
-                        if (bonusSolo > 0) mensajeExito += `\n\n¡BONUS! ${p.nombre} gana +2 extra por valentía.`;
+                        p.puntos += ptsCapitanGanar;
                     } else if (p.estado === 'explorando') {
-                        p.puntos += 2;
+                        p.puntos += ptsTripulacionGanar;
                     }
                 });
-
-                alert(mensajeExito);
-
+                alert(mensajeExito + `Capitán gana ${ptsCapitanGanar} y tripulación ${ptsTripulacionGanar}.`);
             } else {
-                // --- ESCENARIO: DERROTA (BOOM) ---
-                alert(`¡BOOM! El resultado real era ${respuestaReal}. El Capitán se ha pasado.\n\n` +
-                    `• Capitán (${capitan.nombre}): -1 punto\n` +
-                    `• Supervivientes fuera: +2 puntos`);
+                alert(`¡BOOM! Era ${respuestaReal}.\nCapitán pierde ${ptsCapitanPerder}. Los supervivientes fuera ganan ${ptsBajadosPerder}.`);
 
                 listaJugadores.forEach((p, index) => {
-                    if (typeof p.puntos !== 'number') p.puntos = 0; // Protección contra NaN
-
                     if (index === indiceCapitan) {
-                        p.puntos = Math.max(0, p.puntos - 1); // Resta 1 punto (mínimo 0)
+                        p.puntos -= ptsCapitanPerder; // Usamos resta pura según tu preferencia anterior
                     } else if (p.estado === 'a_salvo') {
-                        p.puntos += 2; // Puntos para los que se bajaron
+                        p.puntos += ptsBajadosPerder;
                     }
                 });
             }
 
-            // Actualizar visualmente y pasar a la siguiente ronda
+            // Actualizar visualmente, resetear el órdago y pasar a la siguiente ronda
+            ordagoActivo = false;
+            document.getElementById('btn-subir').disabled = false;
+            document.getElementById('btn-ordago').disabled = false;
+            document.getElementById('input-cifra').disabled = false;
+
             actualizarInterfaz();
             finalizarExpedicion("Ronda finalizada.");
         }
@@ -701,9 +698,10 @@
             }
         };
 
-        function finalizarFaseDecision() {
-            alert("¡Todos han decidido! El Narrador revela la respuesta...");
-            // Aquí iría la lógica de comprobar si el Capitán explotó o no
+        function actualizarEstadoBotonesSubida(bloqueado) {
+            document.getElementById('btn-subir').disabled = bloqueado;
+            document.getElementById('btn-ordago').disabled = bloqueado;
+            document.getElementById('input-cifra').disabled = bloqueado;
         }
 
 
@@ -736,6 +734,8 @@
             indiceCapitan = (rondaActual - 1) % listaJugadores.length;
             indiceJugadorTurno = indiceCapitan;
             cifraPropuesta = 0;
+
+            ordagoActivo = false;
 
             document.getElementById('display-cifra').textContent = "0";
 
@@ -780,6 +780,32 @@
             // Pasamos al siguiente turno
             avanzarTurnoNarrador();
             guardarEstadoPartida();
+        };
+
+        window.lanzarOrdago = function () {
+            const input = document.getElementById('input-cifra');
+            const valor = parseInt(input.value);
+
+            if (isNaN(valor) || valor <= cifraPropuesta) {
+                alert(`Para lanzar un Órdago, la cifra debe ser mayor a ${cifraPropuesta}`);
+                return;
+            }
+
+            if (confirm("⚠️ ¿Estás seguro? Al lanzar un Órdago nadie más podrá subir la cifra y tú serás el Capitán final.")) {
+                cifraPropuesta = valor;
+                document.getElementById('display-cifra').textContent = cifraPropuesta;
+
+                ordagoActivo = true;
+                indiceCapitan = indiceJugadorTurno; // Te conviertes en el Capitán final
+
+                // Deshabilitamos visualmente los botones de subida
+                document.getElementById('btn-subir').disabled = true;
+                document.getElementById('btn-ordago').disabled = true;
+                document.getElementById('input-cifra').disabled = true;
+
+                avanzarTurnoNarrador();
+                guardarEstadoPartida();
+            }
         };
 
         window.decisionJugador = function (decision) {
@@ -878,6 +904,7 @@
                 cifraPropuesta,    // Guardamos la cifra actual
                 indiceCapitan,     // Quién es el capitán actual
                 indiceJugadorTurno,// De quién es el turno
+                ordagoActivo,      // Estado del órdago
                 enPartida: !document.getElementById('game-layout').classList.contains('hidden')
             };
             localStorage.setItem('limite_savegame', JSON.stringify(estado));
@@ -898,6 +925,7 @@
             cifraPropuesta = estado.cifraPropuesta || 0;
             indiceCapitan = estado.indiceCapitan || 0;
             indiceJugadorTurno = estado.indiceJugadorTurno || 0;
+            ordagoActivo = estado.ordagoActivo || false;
 
             // Restaurar Interfaz
             document.getElementById('start-buttons').classList.add('hidden');
@@ -915,6 +943,9 @@
                 document.getElementById('display-cifra').textContent = cifraPropuesta;
             }
 
+            // Bloquear botones si el órdago estaba activo
+            actualizarEstadoBotonesSubida(ordagoActivo);
+
             actualizarInterfaz();
             actualizarFlujoNarrador();
             actualizarTableroNave();
@@ -929,6 +960,13 @@
             document.querySelector('footer').classList.add('hidden')
 
             window.iniciarExpedicion();
+        });
+
+        document.getElementById('player-name-input').addEventListener('keypress', function (e) {
+            if (e.key === 'Enter') {
+                // Ejecutamos la misma lógica que el botón de añadir
+                document.getElementById('add-player-btn').click();
+            }
         });
 
         // En el botón de borrar variables o reset:
