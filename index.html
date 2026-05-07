@@ -209,8 +209,7 @@
                             </div>
                             </p>
                         </div>
-                        <a href="https://da-caro.github.io/setup-and-play/limite.html" target="_blank"
-                            class="block">
+                        <a href="https://da-caro.github.io/setup-and-play/limite.html" target="_blank" class="block">
                             <span class="mt-5 inline-block text-sm font-medium text-limite hover:underline">Ver
                                 Instrucciones →</span></a>
                     </div>
@@ -649,19 +648,30 @@
 
             if (capitanAcierta) {
                 // --- ESCENARIO: ÉXITO ---
-                alert(`¡RESULTADO REAL: ${respuestaReal}! El Capitán no se ha pasado.\n\n` +
+                const tripulantesEnNave = listaJugadores.filter((p, index) =>
+                    index !== indiceCapitan && p.estado === 'explorando'
+                ).length;
+
+                let mensajeExito = `¡RESULTADO REAL: ${respuestaReal}! El Capitán no se ha pasado.\n\n` +
                     `• Capitán (${capitan.nombre}): +4 puntos\n` +
-                    `• Tripulación a bordo: +2 puntos`);
+                    `• Tripulación a bordo: +2 puntos`;
 
                 listaJugadores.forEach((p, index) => {
-                    if (typeof p.puntos !== 'number') p.puntos = 0; // Protección contra NaN
+                    if (typeof p.puntos !== 'number') p.puntos = 0;
 
                     if (index === indiceCapitan) {
-                        p.puntos += 4; // Puntos para el capitán
+                        // Si no hay nadie más, bonus de Lobo Solitario
+                        const bonusSolo = (tripulantesEnNave === 0) ? 2 : 0;
+                        p.puntos += (4 + bonusSolo);
+
+                        if (bonusSolo > 0) mensajeExito += `\n\n¡BONUS! ${p.nombre} gana +2 extra por valentía.`;
                     } else if (p.estado === 'explorando') {
-                        p.puntos += 2; // Puntos para los que se quedaron
+                        p.puntos += 2;
                     }
                 });
+
+                alert(mensajeExito);
+
             } else {
                 // --- ESCENARIO: DERROTA (BOOM) ---
                 alert(`¡BOOM! El resultado real era ${respuestaReal}. El Capitán se ha pasado.\n\n` +
