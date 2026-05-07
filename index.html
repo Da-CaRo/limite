@@ -270,9 +270,11 @@
 
                         <!-- Pantalla de Cifra -->
                         <div id="pantalla-pregunta" class="z-10 w-full mt-4">
-                            <h2 id="texto-pregunta"
-                                class="text-xl md:text-2xl font-bold text-white mb-4 italic min-h-[60px]">
-                                Cargando pregunta...
+                            <h2 id="texto-pregunta" class="mb-4 min-h-[60px] flex items-center justify-center">
+                                <span id="contenido-pregunta"
+                                    class="text-xl md:text-2xl italic font-bold text-white">Cargando pregunta...</span>
+                                <span id="icono-pregunta" class="ml-1 opacity-80 text-3xl">❓</span>
+
                             </h2>
                             <div id="display-cifra"
                                 class="text-4xl md:text-6xl font-black text-acento font-limite drop-shadow-[0_0_15px_rgba(247,255,0,0.3)]">
@@ -726,7 +728,14 @@
             cifraPropuesta = 0;
 
             document.getElementById('display-cifra').textContent = "0";
-            document.getElementById('texto-pregunta').textContent = preguntaActual.q;
+
+            // Sustituye las líneas de carga por estas:
+            const iconoElemento = document.getElementById('icono-pregunta');
+            const contenidoElemento = document.getElementById('contenido-pregunta');
+
+            const icono = preguntaActual.i || "❓";
+            iconoElemento.textContent = icono;
+            contenidoElemento.textContent = preguntaActual.q;
 
             listaJugadores.forEach(p => {
                 p.estado = 'explorando';
@@ -888,7 +897,11 @@
 
             // Restaurar textos visuales
             if (preguntaActual) {
-                document.getElementById('texto-pregunta').textContent = preguntaActual.q;
+                const iconoElemento = document.getElementById('icono-pregunta');
+                const contenidoElemento = document.getElementById('contenido-pregunta');
+
+                iconoElemento.textContent = preguntaActual.i || "❓";
+                contenidoElemento.textContent = preguntaActual.q;
                 document.getElementById('display-cifra').textContent = cifraPropuesta;
             }
 
