@@ -184,6 +184,19 @@
                                 <h3 class="text-4xl font-bold">Opciones</h3>
                             </div>
                             <p class="text-tarjeta text-base">
+                            <div
+                                class="flex items-center justify-between bg-gray-700/50 p-3 rounded-lg mb-4 border border-gray-600">
+                                <div class="flex flex-col text-left">
+                                    <span class="text-xs font-bold text-white uppercase">Activar Órdagos</span>
+                                    <span class="text-[10px] text-gray-400">Permite apuestas finales de 8 puntos</span>
+                                </div>
+                                <label class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" id="toggle-ordago" class="sr-only peer" checked>
+                                    <div
+                                        class="w-11 h-6 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[--color-acento]">
+                                    </div>
+                                </label>
+                            </div>
                             <div class="flex flex-col space-y-2 mb-4">
                                 <label
                                     class="text-sm font-bold text-tarjeta uppercase tracking-widest text-center">Configurar
@@ -395,6 +408,7 @@
         let jugadoresTemporales = [];
         let rondaActual = 1;
         let ordagoActivo = false;
+        let usarOrdagos = true;
         const MAX_RONDAS = 8;
 
         const coloresJugadores = [
@@ -712,6 +726,15 @@
                 return;
             }
 
+            // --- NUEVA LÓGICA DE VISIBILIDAD ---
+            const btnOrdago = document.getElementById('btn-ordago');
+            if (usarOrdagos) {
+                btnOrdago.classList.remove('hidden');
+            } else {
+                btnOrdago.classList.add('hidden');
+            }
+
+
             // 1. Consultar historial de IDs usados
             let usados = JSON.parse(localStorage.getItem('limite_preguntas_usadas')) || [];
 
@@ -905,6 +928,7 @@
                 indiceCapitan,     // Quién es el capitán actual
                 indiceJugadorTurno,// De quién es el turno
                 ordagoActivo,      // Estado del órdago
+                usarOrdagos,       // Permitir ordagos
                 enPartida: !document.getElementById('game-layout').classList.contains('hidden')
             };
             localStorage.setItem('limite_savegame', JSON.stringify(estado));
@@ -926,6 +950,7 @@
             indiceCapitan = estado.indiceCapitan || 0;
             indiceJugadorTurno = estado.indiceJugadorTurno || 0;
             ordagoActivo = estado.ordagoActivo || false;
+            usarOrdagos = estado.usarOrdagos || false;
 
             // Restaurar Interfaz
             document.getElementById('start-buttons').classList.add('hidden');
@@ -943,6 +968,14 @@
                 document.getElementById('display-cifra').textContent = cifraPropuesta;
             }
 
+            // Aplicar visibilidad del botón al cargar
+            const btnOrdago = document.getElementById('btn-ordago');
+            if (usarOrdagos) {
+                btnOrdago.classList.remove('hidden');
+            } else {
+                btnOrdago.classList.add('hidden');
+            }
+
             // Bloquear botones si el órdago estaba activo
             actualizarEstadoBotonesSubida(ordagoActivo);
 
@@ -953,6 +986,8 @@
 
         // Actualizar el botón de inicio para llamar a la nueva función expuesta
         document.getElementById('start-btn').addEventListener('click', () => {
+            usarOrdagos = document.getElementById('toggle-ordago').checked;
+
             listaJugadores = [...jugadoresTemporales];
             document.getElementById('start-buttons').classList.add('hidden');
             document.getElementById('game-layout').classList.remove('hidden');
